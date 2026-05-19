@@ -1,5 +1,5 @@
 import { defineStore } from 'pinia'
-import { ref } from 'vue'
+import { ref, computed } from 'vue'
 
 export const useBukuStore = defineStore('buku', () => {
   const daftarBuku = ref([
@@ -129,5 +129,20 @@ export const useBukuStore = defineStore('buku', () => {
     return daftarBuku.value.find((b) => b.id === id)
   }
 
-  return { daftarBuku, pinjam, kembalikan, getBukuById }
+  // Statistik reaktif — dihitung dari data aktual
+  const totalBuku = computed(() => daftarBuku.value.reduce((sum, b) => sum + b.stok, 0))
+  const totalJudul = computed(() => daftarBuku.value.length)
+  const bukuDipinjam = computed(() => daftarBuku.value.filter((b) => b.stok === 0).length)
+  const bukuTersedia = computed(() => daftarBuku.value.filter((b) => b.tersedia).length)
+
+  return {
+    daftarBuku,
+    pinjam,
+    kembalikan,
+    getBukuById,
+    totalBuku,
+    totalJudul,
+    bukuDipinjam,
+    bukuTersedia,
+  }
 })

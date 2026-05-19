@@ -59,31 +59,19 @@
         <CardContent class="space-y-4">
           <div class="flex gap-8 justify-center">
             <div class="text-center">
-              <p class="text-sm text-muted-foreground mb-2">Total Buku</p>
-              <div class="flex items-center gap-3">
-                <Button
-                  variant="outline"
-                  size="icon"
-                  @click="stat.totalBuku--"
-                  :disabled="stat.totalBuku <= 0"
-                  >−</Button
-                >
-                <span class="text-2xl font-bold w-16 text-center">{{ stat.totalBuku }}</span>
-                <Button variant="outline" size="icon" @click="stat.totalBuku++">+</Button>
-              </div>
+              <p class="text-sm text-muted-foreground mb-2">Total Judul Buku</p>
+              <span class="text-2xl font-bold">{{ totalJudul }}</span>
             </div>
             <div class="text-center">
-              <p class="text-sm text-muted-foreground mb-2">Peminjaman Aktif</p>
+              <p class="text-sm text-muted-foreground mb-2">Buku Dipinjam (stok habis)</p>
               <div class="flex items-center gap-3">
-                <Button
-                  variant="outline"
-                  size="icon"
-                  @click="kurangi"
-                  :disabled="stat.peminjamanAktif <= 0"
+                <Button variant="outline" size="icon" @click="kurangi" :disabled="bukuDipinjam <= 0"
                   >−</Button
                 >
-                <span class="text-2xl font-bold w-16 text-center">{{ stat.peminjamanAktif }}</span>
-                <Button variant="outline" size="icon" @click="tambah">+</Button>
+                <span class="text-2xl font-bold w-16 text-center">{{ bukuDipinjam }}</span>
+                <Button variant="outline" size="icon" @click="tambah" :disabled="bukuTersedia <= 0"
+                  >+</Button
+                >
               </div>
             </div>
           </div>
@@ -106,22 +94,30 @@
 </template>
 
 <script setup>
-import { reactive, computed } from 'vue'
+import { computed } from 'vue'
+import { useBukuStore } from '@/stores/buku'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { BookOpen, BookMarked, BookCopy, BookCheck, Users } from 'lucide-vue-next'
 
-const stat = reactive({ totalBuku: 1247, totalAnggota: 328, peminjamanAktif: 89 })
-const bukuTersedia = computed(() => stat.totalBuku - stat.peminjamanAktif)
+const bukuStore = useBukuStore()
+
+const totalAnggota = 328 // data statis (belum ada store anggota)
+
+const bukuTersedia = computed(() => bukuStore.bukuTersedia)
+const totalJudul = computed(() => bukuStore.totalJudul)
+const bukuDipinjam = computed(() => bukuStore.bukuDipinjam)
+
 const persenTersedia = computed(() => {
-  if (!stat.totalBuku) return '0%'
-  return ((bukuTersedia.value / stat.totalBuku) * 100).toFixed(1) + '%'
+  if (!totalJudul.value) return '0%'
+  return ((bukuTersedia.value / totalJudul.value) * 100).toFixed(1) + '%'
 })
+
 const kartuStat = computed(() => [
-  { id: 'buku', icon: BookCopy, label: 'Total Buku', nilai: stat.totalBuku, sub: null },
-  { id: 'anggota', icon: Users, label: 'Anggota Aktif', nilai: stat.totalAnggota, sub: null },
-  { id: 'pinjam', icon: BookOpen, label: 'Dipinjam', nilai: stat.peminjamanAktif, sub: null },
+  { id: 'buku', icon: BookCopy, label: 'Total Buku', nilai: totalJudul.value, sub: null },
+  { id: 'anggota', icon: Users, label: 'Anggota Aktif', nilai: totalAnggota, sub: null },
+  { id: 'pinjam', icon: BookOpen, label: 'Dipinjam', nilai: bukuDipinjam.value, sub: null },
   {
     id: 'tersedia',
     icon: BookCheck,
@@ -130,10 +126,15 @@ const kartuStat = computed(() => [
     sub: persenTersedia.value,
   },
 ])
+
 function tambah() {
-  if (stat.peminjamanAktif < stat.totalBuku) stat.peminjamanAktif++
+  // Simulasi: pinjam buku pertama yang tersedia
+  const buku = bukuStore.daftarBuku.find((b) => b.tersedia && b.stok > 0)
+  if (buku) bukuStore.pinjam(buku.id)
 }
 function kurangi() {
-  if (stat.peminjamanAktif > 0) stat.peminjamanAktif--
+  // Simulasi: kembalikan buku pertama yang stoknya 0
+  const buku = bukuStore.daftarBuku.find((b) => b.stok === 0)
+  if (buku) bukuStore.kembalikan(buku.id)
 }
 </script>
